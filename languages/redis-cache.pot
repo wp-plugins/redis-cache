@@ -1,0 +1,132 @@
+# Copyright (C) 2014 Redis Object Cache
+# This file is distributed under the same license as the Redis Object Cache package.
+msgid ""
+msgstr ""
+"Project-Id-Version: Redis Object Cache 1.0\n"
+"Report-Msgid-Bugs-To: http://wordpress.org/tag/redis-cache\n"
+"POT-Creation-Date: 2014-11-14 09:26:31+00:00\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: 2014-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+
+#. #-#-#-#-#  plugin.pot (Redis Object Cache 1.0)  #-#-#-#-#
+#. Plugin Name of the plugin/theme
+#: includes/admin-page.php:4 redis-cache.php:32
+msgid "Redis Object Cache"
+msgstr ""
+
+#: includes/admin-page.php:11
+msgid "Object Cache Status"
+msgstr ""
+
+#: includes/admin-page.php:16
+msgid "Connection Parameters"
+msgstr ""
+
+#: includes/admin-page.php:19
+msgid "Protocol:"
+msgstr ""
+
+#: includes/admin-page.php:20
+msgid "Host:"
+msgstr ""
+
+#: includes/admin-page.php:21
+msgid "Port:"
+msgstr ""
+
+#: includes/admin-page.php:22
+msgid "Database:"
+msgstr ""
+
+#: includes/admin-page.php:24
+msgid "Password:"
+msgstr ""
+
+#: includes/admin-page.php:34
+msgid "Enable Object Cache"
+msgstr ""
+
+#: includes/admin-page.php:36
+msgid "Disable Object Cache"
+msgstr ""
+
+#: redis-cache.php:33
+msgid "Redis"
+msgstr ""
+
+#: redis-cache.php:114
+msgid "No drop-in found"
+msgstr ""
+
+#: redis-cache.php:118
+msgid "Connected"
+msgstr ""
+
+#: redis-cache.php:118
+msgid "Not connected"
+msgstr ""
+
+#: redis-cache.php:121
+msgid "Unknown"
+msgstr ""
+
+#: redis-cache.php:140
+msgid ""
+"The Redis object cache drop-in is outdated. <a href=\"%s\">Update it now</a>."
+msgstr ""
+
+#: redis-cache.php:146
+msgid ""
+"Another object cache drop-in is already active. To use Redis, <a href=\"%s"
+"\">please replace it now</a>."
+msgstr ""
+
+#: redis-cache.php:162
+msgid "This plugin requires PHP 5.4 or greater."
+msgstr ""
+
+#: redis-cache.php:171
+msgid "Object Cache enabled."
+msgstr ""
+
+#: redis-cache.php:174
+msgid "Object Cache could not be enabled."
+msgstr ""
+
+#: redis-cache.php:177
+msgid "Object Cache disabled."
+msgstr ""
+
+#: redis-cache.php:180
+msgid "Object Cache could not be disabled."
+msgstr ""
+
+#: redis-cache.php:183
+msgid "Drop-in updated."
+msgstr ""
+
+#: redis-cache.php:186
+msgid "Drop-in could not be updated."
+msgstr ""
+
+#. Plugin URI of the plugin/theme
+msgid "http://wordpress.org/plugins/redis-cache/"
+msgstr ""
+
+#. Description of the plugin/theme
+msgid ""
+"A Redis backend for the WordPress Object Cache based on the Predis client "
+"library for PHP."
+msgstr ""
+
+#. Author of the plugin/theme
+msgid "Till Krüss"
+msgstr ""
+
+#. Author URI of the plugin/theme
+msgid "http://till.kruss.me/"
+msgstr ""

@@ -3,7 +3,9 @@
 Plugin Name: Redis Object Cache
 Plugin URI: http://wordpress.org/plugins/redis-cache/
 Description: A Redis backend for the WordPress Object Cache based on the Predis client library for PHP.
-Version: 1.0
+Version: 1.0.1
+Text Domain: redis-cache
+Domain Path: /languages
 Author: Till Krüss
 Author URI: http://till.kruss.me/
 License: GPLv3
@@ -16,6 +18,8 @@ class RedisObjectCache {
 	public $admin_actions = array( 'enable-cache', 'disable-cache', 'update-dropin' );
 
 	public function __construct() {
+
+		load_plugin_textdomain( 'redis-cache', false, 'redis-cache/languages' );
 
 		add_action( 'admin_notices', array( $this, 'show_admin_notices' ) );
 		add_action( 'admin_menu', array( $this, 'add_admin_menu_page' ) );
