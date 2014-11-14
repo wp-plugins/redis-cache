@@ -15,26 +15,28 @@ A persistent object cache backend powered by Redis and the Predis library for PH
 
 A persistent object cache backend powered by [Redis](http://redis.io/) and the [Predis](https://github.com/nrk/predis/) library for PHP.
 
-Requires PHP 5.4.0 or greater.
+The Predis library requires PHP 5.4 or greater.
 
-Forked from Eric Mann's and Erick Hitter's [Redis Object Cache](https://github.com/ericmann/Redis-Object-Cache), which requires the [Redis PECL extension](http://pecl.php.net/package/redis).
+To adjust the connection parameters or prefixing cache keys, see ["Other Notes"](http://wordpress.org/extend/plugins/redis-cache/other_notes/).
+
+Forked from Eric Mann's and Erick Hitter's [Redis Object Cache](https://github.com/ericmann/Redis-Object-Cache), which requires the Redis PECL extension.
 
 
 == Installation ==
 
 For detailed installation instructions, please read the [standard installation procedure for WordPress plugins](http://codex.wordpress.org/Managing_Plugins#Installing_Plugins).
 
-1. Upload the `/redis-cache/` directory and its contents to `/wp-content/plugins/`.
-2. Login to your WordPress installation and activate the plugin through the _Plugins_ menu.
-3. Enable the object cache in the _Tools_ menu under _Redis_.
-4. Adjust [connection parameters](http://wordpress.org/extend/plugins/redis-cache/other_notes/#Connection Parameters), if necessary.
+1. Make sure Redis in installed and running.
+2. Install and activate plugin.
+3. Enable the object cache under _Tools -> Redis_.
+4. If necessary, adjust [connection parameters](http://wordpress.org/extend/plugins/redis-cache/other_notes/).
 
 
 == Connection Parameters ==
 
 By default the object cache drop-in will connect to Redis over TCP at `127.0.0.1:6379` and select database `0`.
 
-To adjust the default parameters define any of the following constants in your `wp-config.php`.
+To adjust the connection parameters, define the following constants in your `wp-config.php`.
 
   * `WP_REDIS_SCHEME` [default: `tcp`]
 
