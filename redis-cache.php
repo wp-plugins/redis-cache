@@ -25,7 +25,7 @@ class RedisObjectCache {
 		add_action( 'admin_menu', array( $this, 'add_admin_menu_page' ) );
 		add_action( 'load-tools_page_redis-cache', array( $this, 'do_admin_actions' ) );
 		add_action( 'load-tools_page_redis-cache', array( $this, 'add_admin_page_notices' ) );
-		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_plugin_action_link' ) );
+		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_plugin_actions_links' ) );
 
 	}
 
@@ -71,7 +71,7 @@ class RedisObjectCache {
 
 	}
 
-	public function add_plugin_action_link( $links ) {
+	public function add_plugin_actions_links( $links ) {
 
 		// add settings link to plugin actions
 		return array_merge(
@@ -86,8 +86,7 @@ class RedisObjectCache {
 	}
 
 	public function validate_object_cache_dropin() {
-		global $wp_object_cache;
-		return $this->object_cache_dropin_exists() && method_exists( $wp_object_cache, 'redis_status' );
+		return $this->object_cache_dropin_exists() && method_exists( $GLOBALS[ 'wp_object_cache' ], 'redis_status' );
 	}
 
 	public function get_redis_scheme() {
@@ -128,7 +127,10 @@ class RedisObjectCache {
 
 	public function show_admin_notices() {
 
-		global $wp_object_cache;
+		// only show admin notices to users with the right capability
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 
 		if ( $this->object_cache_dropin_exists() ) {
 
@@ -211,6 +213,11 @@ class RedisObjectCache {
 				if ( $action === $name && ! wp_verify_nonce( $_GET[ '_wpnonce' ], $action ) ) {
 					return;
 				}
+			}
+
+			// verify user capability
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return;
 			}
 
 			if ( in_array( $action, $this->admin_actions ) ) {
