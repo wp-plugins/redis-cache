@@ -1,7 +1,7 @@
 === Redis Object Cache ===
 Contributors: tillkruess
 Donate link: http://till.kruss.me/donations/
-Tags: redis, predis, cache, object cache, wp object cache, server, performance, speed, load
+Tags: redis, predis, caching, cache, object cache, wp object cache, server, performance, optimize, speed, load
 Requires at least: 3.3
 Tested up to: 4.0
 Stable tag: 1.0
