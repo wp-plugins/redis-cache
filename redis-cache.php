@@ -12,6 +12,10 @@ License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 */
 
+if ( ! defined( 'ABSPATH' ) ) {
+	exit;
+}
+
 class RedisObjectCache {
 
 	public $admin_page = 'tools.php?page=redis-cache';

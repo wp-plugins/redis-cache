@@ -1,4 +1,6 @@
 
+<?php if ( ! defined( 'ABSPATH' ) ) exit; ?>
+
 <div class="wrap">
 
 	<h2><?php _e( 'Redis Object Cache', 'redis-cache' ); ?></h2>
