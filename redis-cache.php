@@ -17,6 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 class RedisObjectCache {
 
 	private $screen = 'tools_page_redis-cache';
+	private $capability = 'manage_options';
 	private $admin_page = 'tools.php?page=redis-cache';
 	private $admin_actions = array( 'enable-cache', 'disable-cache', 'update-dropin' );
 
@@ -40,7 +41,7 @@ class RedisObjectCache {
 		add_management_page(
 			__( 'Redis Object Cache', 'redis-cache'),
 			__( 'Redis', 'redis-cache'),
-			'manage_options',
+			$this->capability,
 			'redis-cache',
 			array( $this, 'show_admin_page' )
 		);
@@ -142,7 +143,7 @@ class RedisObjectCache {
 	public function show_admin_notices() {
 
 		// only show admin notices to users with the right capability
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( ! current_user_can( $this->capability ) ) {
 			return;
 		}
 
@@ -227,11 +228,6 @@ class RedisObjectCache {
 				if ( $action === $name && ! wp_verify_nonce( $_GET[ '_wpnonce' ], $action ) ) {
 					return;
 				}
-			}
-
-			// verify user capability
-			if ( ! current_user_can( 'manage_options' ) ) {
-				return;
 			}
 
 			if ( in_array( $action, $this->admin_actions ) ) {
