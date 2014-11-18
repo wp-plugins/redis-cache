@@ -16,6 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) exit;
 
 class RedisObjectCache {
 
+	public $screen = 'tools_page_redis-cache';
 	public $admin_page = 'tools.php?page=redis-cache';
 	public $admin_actions = array( 'enable-cache', 'disable-cache', 'update-dropin' );
 
@@ -23,11 +24,13 @@ class RedisObjectCache {
 
 		load_plugin_textdomain( 'redis-cache', false, 'redis-cache/languages' );
 
+		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_plugin_actions_links' ) );
+
 		add_action( 'admin_notices', array( $this, 'show_admin_notices' ) );
 		add_action( 'admin_menu', array( $this, 'add_admin_menu_page' ) );
-		add_action( 'load-tools_page_redis-cache', array( $this, 'do_admin_actions' ) );
-		add_action( 'load-tools_page_redis-cache', array( $this, 'add_admin_page_notices' ) );
-		add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $this, 'add_plugin_actions_links' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
+		add_action( 'load-' . $this->screen , array( $this, 'do_admin_actions' ) );
+		add_action( 'load-' . $this->screen, array( $this, 'add_admin_page_notices' ) );
 
 	}
 
@@ -80,6 +83,15 @@ class RedisObjectCache {
 			array( '<a href="' . admin_url( $this->admin_page ) . '">Settings</a>' ),
 			$links
 		);
+
+	}
+
+	public function enqueue_admin_styles( $hook_suffix ) {
+
+		if ( $hook_suffix === $this->screen ) {
+			$plugin = get_plugin_data( __FILE__ );
+			wp_enqueue_style( 'redis-cache', plugin_dir_url( __FILE__ ) . 'includes/admin-page.css', null, $plugin[ 'Version' ] );
+		}
 
 	}
 
