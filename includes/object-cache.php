@@ -11,7 +11,6 @@ License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
 Based on Eric Mann's and Erick Hitter's Redis Object Cache:
 https://github.com/ericmann/Redis-Object-Cache
-
 */
 
 /**
@@ -359,6 +358,7 @@ class WP_Object_Cache {
 			Predis\Autoloader::register();
 
 			$this->redis = new Predis\Client( $redis );
+			$this->redis->connect();
 			$this->redis_connected = true;
 
 		} catch ( Exception $exception ) {
