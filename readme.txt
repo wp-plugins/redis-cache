@@ -4,7 +4,7 @@ Donate link: http://till.kruss.me/donations/
 Tags: redis, predis, caching, cache, object cache, wp object cache, server, performance, optimize, speed, load
 Requires at least: 3.3
 Tested up to: 4.0
-Stable tag: 1.0
+Stable tag: 1.0.1
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -68,6 +68,21 @@ Users with setups where multiple installs share a common `wp-config.php` or `$ta
 
 == Changelog ==
 
+= 1.0.1 =
+
+  * Load plugin translations
+  * Hide global admin notices from non-admin users
+  * Prevent direct file access to `redis-cache.php` and `admin-page.php`
+  * Colorize "Disable Object Cache" button
+  * Call `Predis\Client->connect()` to avoid potential uncaught `Predis\Connection\ConnectionException`
+
 = 1.0 =
 
-* Initial release
+  * Initial release
+
+
+== Upgrade Notice ==
+
+= 1.0.1 =
+
+This update includes several security, user interface and general code improvements.
