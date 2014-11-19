@@ -2,9 +2,9 @@
 # This file is distributed under the same license as the Redis Object Cache package.
 msgid ""
 msgstr ""
-"Project-Id-Version: Redis Object Cache 1.0\n"
+"Project-Id-Version: Redis Object Cache 1.0.1\n"
 "Report-Msgid-Bugs-To: http://wordpress.org/tag/redis-cache\n"
-"POT-Creation-Date: 2014-11-14 09:26:31+00:00\n"
+"POT-Creation-Date: 2014-11-19 12:27:42+00:00\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
@@ -12,104 +12,104 @@ msgstr ""
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 
-#. #-#-#-#-#  plugin.pot (Redis Object Cache 1.0)  #-#-#-#-#
+#. #-#-#-#-#  plugin.pot (Redis Object Cache 1.0.1)  #-#-#-#-#
 #. Plugin Name of the plugin/theme
-#: includes/admin-page.php:4 redis-cache.php:32
+#: includes/admin-page.php:6 redis-cache.php:42
 msgid "Redis Object Cache"
 msgstr ""
 
-#: includes/admin-page.php:11
+#: includes/admin-page.php:13
 msgid "Object Cache Status"
 msgstr ""
 
-#: includes/admin-page.php:16
+#: includes/admin-page.php:18
 msgid "Connection Parameters"
 msgstr ""
 
-#: includes/admin-page.php:19
+#: includes/admin-page.php:21
 msgid "Protocol:"
 msgstr ""
 
-#: includes/admin-page.php:20
+#: includes/admin-page.php:22
 msgid "Host:"
 msgstr ""
 
-#: includes/admin-page.php:21
+#: includes/admin-page.php:23
 msgid "Port:"
 msgstr ""
 
-#: includes/admin-page.php:22
+#: includes/admin-page.php:24
 msgid "Database:"
 msgstr ""
 
-#: includes/admin-page.php:24
+#: includes/admin-page.php:26
 msgid "Password:"
 msgstr ""
 
-#: includes/admin-page.php:34
+#: includes/admin-page.php:36
 msgid "Enable Object Cache"
 msgstr ""
 
-#: includes/admin-page.php:36
+#: includes/admin-page.php:38
 msgid "Disable Object Cache"
 msgstr ""
 
-#: redis-cache.php:33
+#: redis-cache.php:43
 msgid "Redis"
 msgstr ""
 
-#: redis-cache.php:114
+#: redis-cache.php:132
 msgid "No drop-in found"
 msgstr ""
 
-#: redis-cache.php:118
+#: redis-cache.php:136
 msgid "Connected"
 msgstr ""
 
-#: redis-cache.php:118
+#: redis-cache.php:136
 msgid "Not connected"
 msgstr ""
 
-#: redis-cache.php:121
+#: redis-cache.php:139
 msgid "Unknown"
 msgstr ""
 
-#: redis-cache.php:140
+#: redis-cache.php:161
 msgid ""
 "The Redis object cache drop-in is outdated. <a href=\"%s\">Update it now</a>."
 msgstr ""
 
-#: redis-cache.php:146
+#: redis-cache.php:167
 msgid ""
 "Another object cache drop-in is already active. To use Redis, <a href=\"%s"
 "\">please replace it now</a>."
 msgstr ""
 
-#: redis-cache.php:162
+#: redis-cache.php:183
 msgid "This plugin requires PHP 5.4 or greater."
 msgstr ""
 
-#: redis-cache.php:171
+#: redis-cache.php:192
 msgid "Object Cache enabled."
 msgstr ""
 
-#: redis-cache.php:174
+#: redis-cache.php:195
 msgid "Object Cache could not be enabled."
 msgstr ""
 
-#: redis-cache.php:177
+#: redis-cache.php:198
 msgid "Object Cache disabled."
 msgstr ""
 
-#: redis-cache.php:180
+#: redis-cache.php:201
 msgid "Object Cache could not be disabled."
 msgstr ""
 
-#: redis-cache.php:183
+#: redis-cache.php:204
 msgid "Drop-in updated."
 msgstr ""
 
-#: redis-cache.php:186
+#: redis-cache.php:207
 msgid "Drop-in could not be updated."
 msgstr ""
 
