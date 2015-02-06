@@ -3,7 +3,7 @@
 Plugin Name: Redis Object Cache
 Plugin URI: http://wordpress.org/plugins/redis-cache/
 Description: A Redis backend for the WordPress Object Cache based on the Predis client library for PHP.
-Version: 1.0.1
+Version: 1.0.2
 Text Domain: redis-cache
 Domain Path: /languages
 Author: Till Krüss
@@ -19,7 +19,7 @@ class RedisObjectCache {
 	private $screen = 'tools_page_redis-cache';
 	private $capability = 'manage_options';
 	private $admin_page = 'tools.php?page=redis-cache';
-	private $admin_actions = array( 'enable-cache', 'disable-cache', 'update-dropin' );
+	private $admin_actions = array( 'enable-cache', 'disable-cache', 'flush-cache', 'update-dropin' );
 
 	public function __construct() {
 
@@ -105,7 +105,7 @@ class RedisObjectCache {
 	}
 
 	public function get_redis_scheme() {
-		return defined( 'WP_REDIS_SCHEME' ) ? WP_REDIS_SCHEME : 'TCP';
+		return defined( 'WP_REDIS_SCHEME' ) ? WP_REDIS_SCHEME : 'tcp';
 	}
 
 	public function get_redis_host() {
@@ -113,11 +113,15 @@ class RedisObjectCache {
 	}
 
 	public function get_redis_port() {
-		return defined( 'WP_REDIS_PORT' ) ? WP_REDIS_PORT : '6379';
+		return defined( 'WP_REDIS_PORT' ) ? WP_REDIS_PORT : 6379;
+	}
+
+	public function get_redis_path() {
+		return defined( 'WP_REDIS_PATH' ) ? WP_REDIS_PATH : null;
 	}
 
 	public function get_redis_database() {
-		return defined( 'WP_REDIS_DATABASE' ) ? WP_REDIS_DATABASE : '0';
+		return defined( 'WP_REDIS_DATABASE' ) ? WP_REDIS_DATABASE : 0;
 	}
 
 	public function get_redis_password() {
@@ -200,6 +204,12 @@ class RedisObjectCache {
 				case 'disable-cache-failed':
 					$error = __( 'Object Cache could not be disabled.', 'redis-cache' );
 					break;
+				case 'cache-flushed':
+					$message = __( 'Object Cache flushed.', 'redis-cache' );
+					break;
+				case 'flush-cache-failed':
+					$error = __( 'Object Cache could not be flushed.', 'redis-cache' );
+					break;
 				case 'dropin-updated':
 					$message = __( 'Drop-in updated.', 'redis-cache' );
 					break;
@@ -234,6 +244,10 @@ class RedisObjectCache {
 
 				$url = wp_nonce_url( admin_url( add_query_arg( 'action', $action, $this->admin_page ) ), $action );
 
+				if ( $action === 'flush-cache' ) {
+					$message = wp_cache_flush() ? 'cache-flushed' : 'flush-cache-failed';
+				}
+
 				// do we have filesystem credentials?
 				if ( $this->initialize_filesystem( $url, true ) ) {
 
@@ -256,9 +270,12 @@ class RedisObjectCache {
 
 					}
 
+				}
+
+				// redirect if status `$message` was set
+				if ( isset( $message ) ) {
 					wp_safe_redirect( admin_url( add_query_arg( 'message', $message, $this->admin_page ) ) );
 					exit;
-
 				}
 
 			}

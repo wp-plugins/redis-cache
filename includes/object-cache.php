@@ -3,7 +3,7 @@
 Plugin Name: Redis Object Cache
 Plugin URI: http://wordpress.org/plugins/redis-cache/
 Description: A Redis backend for the WordPress Object Cache based on the Predis client library for PHP.
-Version: 1.0
+Version: 1.0.2
 Author: Till Krüss
 Author URI: http://till.kruss.me/
 License: GPLv3
@@ -335,6 +335,10 @@ class WP_Object_Cache {
 			$redis[ 'port' ] = WP_REDIS_PORT;
 		}
 
+		if ( defined( 'WP_REDIS_PATH' ) ) {
+			$redis[ 'path' ] = WP_REDIS_PATH;
+		}
+
 		if ( defined( 'WP_REDIS_PASSWORD' ) ) {
 			$redis[ 'password' ] = WP_REDIS_PASSWORD;
 		}
@@ -537,22 +541,21 @@ class WP_Object_Cache {
 	public function get( $key, $group = 'default' ) {
 		$derived_key = $this->build_key( $key, $group );
 
-		if ( in_array( $group, $this->no_redis_groups ) || ! $this->redis_status() ) {
-			if ( isset( $this->cache[ $derived_key ] ) ) {
-				$this->cache_hits++;
-				return is_object( $this->cache[ $derived_key ] ) ? clone $this->cache[ $derived_key ] : $this->cache[ $derived_key ];
-			} else {
-				$this->cache_misses++;
-				return false;
-			}
+		if ( isset( $this->cache[ $derived_key ] ) ) {
+			$this->cache_hits++;
+			return is_object( $this->cache[ $derived_key ] ) ? clone $this->cache[ $derived_key ] : $this->cache[ $derived_key ];
+		} elseif ( in_array( $group, $this->no_redis_groups ) || ! $this->redis_status() ) {
+			$this->cache_misses++;
+			return false;
 		}
 
-		if ( $this->redis->exists( $derived_key ) ) {
-			$this->cache_hits++;
-			$value = maybe_unserialize( $this->redis->get( $derived_key ) );
-		} else {
-			$this->cache_misses;
+		$result = $this->redis->get( $derived_key );
+		if ($result == NULL) {
+			$this->cache_misses++;
 			return false;
+		} else {
+			$this->cache_hits++;
+			$value = maybe_unserialize($result);
 		}
 
 		$this->add_to_internal_cache( $derived_key, $value );
