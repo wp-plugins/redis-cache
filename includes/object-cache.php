@@ -349,21 +349,44 @@ class WP_Object_Cache {
 
 		try {
 
-			if ( version_compare( PHP_VERSION, '5.4.0', '<' ) ) {
-				throw new Exception;
+			// is HHVM's built-in Redis class available?
+			if ( defined( 'HHVM_VERSION' ) && class_exists( 'Redis' ) ) {
+
+				$this->redis = new Redis();
+
+				// adjust host and port, if the scheme is `unix`
+				if ( strcasecmp( 'unix', $redis[ 'scheme' ] ) === 0 ) {
+					$redis[ 'host' ] = 'unix://' . $redis[ 'path' ];
+					$redis[ 'port' ] = 0;
+				}
+
+				if ( ! $this->redis->connect( $redis[ 'host' ], $redis[ 'port' ] ) ) {
+					throw new Exception;
+				}
+
+				$this->redis_connected = true;
+
+			} else {
+
+				// require PHP 5.4 or greater
+				if ( version_compare( PHP_VERSION, '5.4.0', '<' ) ) {
+					throw new Exception;
+				}
+
+				// check if bundled Predis library exists
+				if ( ! realpath( dirname( __FILE__ ) . '/plugins/redis-cache/includes/predis.php' ) ) {
+					throw new Exception;
+				}
+
+				require_once dirname( __FILE__ ) . '/plugins/redis-cache/includes/predis.php';
+
+				Predis\Autoloader::register();
+
+				$this->redis = new Predis\Client( $redis );
+				$this->redis->connect();
+				$this->redis_connected = true;
+
 			}
-
-			if ( ! realpath( dirname( __FILE__ ) . '/plugins/redis-cache/includes/predis.php' ) ) {
-				throw new Exception;
-			}
-
-			require_once dirname( __FILE__ ) . '/plugins/redis-cache/includes/predis.php';
-
-			Predis\Autoloader::register();
-
-			$this->redis = new Predis\Client( $redis );
-			$this->redis->connect();
-			$this->redis_connected = true;
 
 		} catch ( Exception $exception ) {
 
