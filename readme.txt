@@ -4,7 +4,7 @@ Donate link: http://till.kruss.me/donations/
 Tags: redis, predis, caching, cache, object cache, wp object cache, server, performance, optimize, speed, load
 Requires at least: 3.3
 Tested up to: 4.1
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -13,11 +13,9 @@ A persistent object cache backend powered by Redis and the Predis library for PH
 
 == Description ==
 
-A persistent object cache backend powered by [Redis](http://redis.io/) and the [Predis](https://github.com/nrk/predis/) library for PHP.
+A persistent object cache backend powered by [Redis](http://redis.io/) and the [Predis](https://github.com/nrk/predis/) library for PHP. The Predis library requires PHP 5.4 or greater.
 
-The Predis library requires PHP 5.4 or greater.
-
-To adjust the connection parameters or prefixing cache keys, see ["Other Notes"](http://wordpress.org/extend/plugins/redis-cache/other_notes/).
+To adjust the connection parameters or prefixing cache keys, see [Other Notes](http://wordpress.org/extend/plugins/redis-cache/other_notes/).
 
 Forked from Eric Mann's and Erick Hitter's [Redis Object Cache](https://github.com/ericmann/Redis-Object-Cache), which requires the Redis PECL extension.
 
@@ -50,7 +48,11 @@ To adjust the connection parameters, define the following constants in your `wp-
 
       TCP/IP port of the target server. This is ignored when connecting to Redis using UNIX domain sockets.
 
-  * `WP_REDIS_DATABASE` [default: not set]
+  * `WP_REDIS_PATH` [default: not set]
+
+      Path of the UNIX domain socket file used when connecting to Redis using UNIX domain sockets.
+
+  * `WP_REDIS_DATABASE` [default: `0`]
 
       Accepts a numeric value that is used by Predis to automatically select a logical database with the `SELECT` command.
 
@@ -73,6 +75,13 @@ Users with setups where multiple installs share a common `wp-config.php` or `$ta
 
 == Changelog ==
 
+= 1.0.2 =
+
+  * Added "Flush Cache" button
+  * Added support for UNIX domain sockets
+  * Improved cache object retrieval performance significantly
+  * Updated bundled Predis library to version `1.0.1`
+
 = 1.0.1 =
 
   * Load plugin translations
@@ -87,6 +96,10 @@ Users with setups where multiple installs share a common `wp-config.php` or `$ta
 
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+
+This update includes significant speed improvements and support for UNIX domain sockets.
 
 = 1.0.1 =
 
