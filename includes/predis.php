@@ -292,6 +292,33 @@ class ZSetRange extends Command
 }
 
 /**
+ * @link http://redis.io/commands/sinterstore
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class SetIntersectionStore extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SINTERSTORE';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        if (count($arguments) === 2 && is_array($arguments[1])) {
+            return array_merge(array($arguments[0]), $arguments[1]);
+        }
+
+        return $arguments;
+    }
+}
+
+/**
  * @link http://redis.io/commands/sinter
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
@@ -340,17 +367,47 @@ class ServerEval extends Command
 }
 
 /**
- * @link http://redis.io/commands/sinterstore
+ * @link http://redis.io/commands/rename
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class SetIntersectionStore extends Command
+class KeyRename extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SINTERSTORE';
+        return 'RENAME';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/setex
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringSetExpire extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SETEX';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/mset
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringSetMultiple extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'MSET';
     }
 
     /**
@@ -358,49 +415,19 @@ class SetIntersectionStore extends Command
      */
     protected function filterArguments(array $arguments)
     {
-        if (count($arguments) === 2 && is_array($arguments[1])) {
-            return array_merge(array($arguments[0]), $arguments[1]);
+        if (count($arguments) === 1 && is_array($arguments[0])) {
+            $flattenedKVs = array();
+            $args = $arguments[0];
+
+            foreach ($args as $k => $v) {
+                $flattenedKVs[] = $k;
+                $flattenedKVs[] = $v;
+            }
+
+            return $flattenedKVs;
         }
 
         return $arguments;
-    }
-}
-
-/**
- * @link http://redis.io/commands/rpush
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPushTail extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RPUSH';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeVariadic($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/ttl
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyTimeToLive extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'TTL';
     }
 }
 
@@ -424,44 +451,6 @@ class KeyExpireAt extends Command
     public function parseResponse($data)
     {
         return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/rename
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyRename extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RENAME';
-    }
-}
-
-/**
- * @link http://redis.io/commands/subscribe
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class PubSubSubscribe extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SUBSCRIBE';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeArguments($arguments);
     }
 }
 
@@ -490,6 +479,29 @@ class ListPopFirstBlocking extends Command
         }
 
         return $arguments;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/unsubscribe
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class PubSubUnsubscribe extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'UNSUBSCRIBE';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeArguments($arguments);
     }
 }
 
@@ -592,57 +604,111 @@ class ServerInfo extends Command
 }
 
 /**
- * @link http://redis.io/commands/zrangebyscore
+ * @link http://redis.io/commands/evalsha
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetRangeByScore extends ZSetRange
+class ServerEvalSHA extends ServerEval
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZRANGEBYSCORE';
+        return 'EVALSHA';
+    }
+
+    /**
+     * Returns the SHA1 hash of the body of the script.
+     *
+     * @return string SHA1 hash.
+     */
+    public function getScriptHash()
+    {
+        return $this->getArgument(0);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/expire
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyExpire extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'EXPIRE';
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function prepareOptions($options)
+    public function parseResponse($data)
     {
-        $opts = array_change_key_case($options, CASE_UPPER);
-        $finalizedOpts = array();
+        return (bool) $data;
+    }
+}
 
-        if (isset($opts['LIMIT']) && is_array($opts['LIMIT'])) {
-            $limit = array_change_key_case($opts['LIMIT'], CASE_UPPER);
-
-            $finalizedOpts[] = 'LIMIT';
-            $finalizedOpts[] = isset($limit['OFFSET']) ? $limit['OFFSET'] : $limit[0];
-            $finalizedOpts[] = isset($limit['COUNT']) ? $limit['COUNT'] : $limit[1];
-        }
-
-        return array_merge($finalizedOpts, parent::prepareOptions($options));
+/**
+ * @link http://redis.io/commands/subscribe
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class PubSubSubscribe extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SUBSCRIBE';
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function withScores()
+    protected function filterArguments(array $arguments)
     {
-        $arguments = $this->getArguments();
+        return self::normalizeArguments($arguments);
+    }
+}
 
-        for ($i = 3; $i < count($arguments); $i++) {
-            switch (strtoupper($arguments[$i])) {
-                case 'WITHSCORES':
-                    return true;
+/**
+ * @link http://redis.io/commands/rpush
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPushTail extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RPUSH';
+    }
 
-                case 'LIMIT':
-                    $i += 2;
-                    break;
-            }
-        }
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
+    }
+}
 
-        return false;
+/**
+ * @link http://redis.io/commands/ttl
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyTimeToLive extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'TTL';
     }
 }
 
@@ -712,670 +778,72 @@ class ZSetUnionStore extends Command
 }
 
 /**
- * @link http://redis.io/commands/mset
+ * @link http://redis.io/commands/zrangebyscore
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSetMultiple extends Command
+class ZSetRangeByScore extends ZSetRange
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'MSET';
+        return 'ZRANGEBYSCORE';
     }
 
     /**
      * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        if (count($arguments) === 1 && is_array($arguments[0])) {
-            $flattenedKVs = array();
-            $args = $arguments[0];
-
-            foreach ($args as $k => $v) {
-                $flattenedKVs[] = $k;
-                $flattenedKVs[] = $v;
-            }
-
-            return $flattenedKVs;
-        }
-
-        return $arguments;
-    }
-}
-
-/**
- * @link http://redis.io/commands/setex
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringSetExpire extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SETEX';
-    }
-}
-
-/**
- * @link http://redis.io/commands/expire
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyExpire extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'EXPIRE';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/unsubscribe
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class PubSubUnsubscribe extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'UNSUBSCRIBE';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeArguments($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/evalsha
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerEvalSHA extends ServerEval
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'EVALSHA';
-    }
-
-    /**
-     * Returns the SHA1 hash of the body of the script.
-     *
-     * @return string SHA1 hash.
-     */
-    public function getScriptHash()
-    {
-        return $this->getArgument(0);
-    }
-}
-
-/**
- * @link http://redis.io/commands/decr
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringDecrement extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'DECR';
-    }
-}
-
-/**
- * @link http://redis.io/commands/decrby
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringDecrementBy extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'DECRBY';
-    }
-}
-
-/**
- * @link http://redis.io/commands/get
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringGet extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'GET';
-    }
-}
-
-/**
- * @link http://redis.io/commands/bitop
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringBitOp extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'BITOP';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        if (count($arguments) === 3 && is_array($arguments[2])) {
-            list($operation, $destination, ) = $arguments;
-            $arguments = $arguments[2];
-            array_unshift($arguments, $operation, $destination);
-        }
-
-        return $arguments;
-    }
-}
-
-/**
- * @link http://redis.io/commands/bitcount
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringBitCount extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'BITCOUNT';
-    }
-}
-
-/**
- * @link http://redis.io/commands/sunionstore
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetUnionStore extends SetIntersectionStore
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SUNIONSTORE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/append
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringAppend extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'APPEND';
-    }
-}
-
-/**
- * @link http://redis.io/commands/getbit
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringGetBit extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'GETBIT';
-    }
-}
-
-/**
- * @link http://redis.io/commands/mget
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringGetMultiple extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'MGET';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeArguments($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/incrbyfloat
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringIncrementByFloat extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'INCRBYFLOAT';
-    }
-}
-
-/**
- * @link http://redis.io/commands/psetex
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringPreciseSetExpire extends StringSetExpire
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PSETEX';
-    }
-}
-
-/**
- * @link http://redis.io/commands/incrby
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringIncrementBy extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'INCRBY';
-    }
-}
-
-/**
- * @link http://redis.io/commands/incr
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringIncrement extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'INCR';
-    }
-}
-
-/**
- * @link http://redis.io/commands/getrange
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringGetRange extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'GETRANGE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/getset
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class StringGetSet extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'GETSET';
-    }
-}
-
-/**
- * @link http://redis.io/commands/sunion
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetUnion extends SetIntersection
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SUNION';
-    }
-}
-
-/**
- * @link http://redis.io/commands/sscan
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetScan extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SSCAN';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        if (count($arguments) === 3 && is_array($arguments[2])) {
-            $options = $this->prepareOptions(array_pop($arguments));
-            $arguments = array_merge($arguments, $options);
-        }
-
-        return $arguments;
-    }
-
-    /**
-     * Returns a list of options and modifiers compatible with Redis.
-     *
-     * @param array $options List of options.
-     *
-     * @return array
      */
     protected function prepareOptions($options)
     {
-        $options = array_change_key_case($options, CASE_UPPER);
-        $normalized = array();
+        $opts = array_change_key_case($options, CASE_UPPER);
+        $finalizedOpts = array();
 
-        if (!empty($options['MATCH'])) {
-            $normalized[] = 'MATCH';
-            $normalized[] = $options['MATCH'];
+        if (isset($opts['LIMIT']) && is_array($opts['LIMIT'])) {
+            $limit = array_change_key_case($opts['LIMIT'], CASE_UPPER);
+
+            $finalizedOpts[] = 'LIMIT';
+            $finalizedOpts[] = isset($limit['OFFSET']) ? $limit['OFFSET'] : $limit[0];
+            $finalizedOpts[] = isset($limit['COUNT']) ? $limit['COUNT'] : $limit[1];
         }
 
-        if (!empty($options['COUNT'])) {
-            $normalized[] = 'COUNT';
-            $normalized[] = $options['COUNT'];
-        }
-
-        return $normalized;
-    }
-}
-
-/**
- * @link http://redis.io/commands/scard
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetCardinality extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SCARD';
-    }
-}
-
-/**
- * @link http://redis.io/commands/sdiff
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetDifference extends SetIntersection
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SDIFF';
-    }
-}
-
-/**
- * @link http://redis.io/commands/sdiffstore
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetDifferenceStore extends SetIntersectionStore
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SDIFFSTORE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/sadd
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetAdd extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SADD';
+        return array_merge($finalizedOpts, parent::prepareOptions($options));
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function filterArguments(array $arguments)
+    protected function withScores()
     {
-        return self::normalizeVariadic($arguments);
-    }
-}
+        $arguments = $this->getArguments();
 
-/**
- * @link http://redis.io/commands/time
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerTime extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'TIME';
-    }
-}
+        for ($i = 3; $i < count($arguments); $i++) {
+            switch (strtoupper($arguments[$i])) {
+                case 'WITHSCORES':
+                    return true;
 
-/**
- * @link http://redis.io/commands/slaveof
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerSlaveOf extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SLAVEOF';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        if (count($arguments) === 0 || $arguments[0] === 'NO ONE') {
-            return array('NO', 'ONE');
-        }
-
-        return $arguments;
-    }
-}
-
-/**
- * @link http://redis.io/commands/slowlog
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerSlowlog extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SLOWLOG';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        if (is_array($data)) {
-            $log = array();
-
-            foreach ($data as $index => $entry) {
-                $log[$index] = array(
-                    'id' => $entry[0],
-                    'timestamp' => $entry[1],
-                    'duration' => $entry[2],
-                    'command' => $entry[3],
-                );
+                case 'LIMIT':
+                    $i += 2;
+                    break;
             }
-
-            return $log;
         }
 
-        return $data;
+        return false;
     }
 }
 
 /**
- * @link http://redis.io/commands/hexists
+ * @link http://redis.io/commands/zremrangebyrank
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class HashExists extends Command
+class ZSetRemoveRangeByRank extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'HEXISTS';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/hdel
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashDelete extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HDEL';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeVariadic($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/srandmember
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetRandomMember extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SRANDMEMBER';
-    }
-}
-
-/**
- * @link http://redis.io/commands/srem
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class SetRemove extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SREM';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeVariadic($arguments);
+        return 'ZREMRANGEBYRANK';
     }
 }
 
@@ -1456,62 +924,47 @@ class SetMembers extends Command
 }
 
 /**
- * @link http://redis.io/commands/set
+ * @link http://redis.io/commands/zremrangebyscore
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSet extends Command
+class ZSetRemoveRangeByScore extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SET';
+        return 'ZREMRANGEBYSCORE';
     }
 }
 
 /**
- * @link http://redis.io/commands/setbit
+ * @link http://redis.io/commands/srandmember
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSetBit extends Command
+class SetRandomMember extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SETBIT';
+        return 'SRANDMEMBER';
     }
 }
 
 /**
- * @link http://redis.io/commands/zrank
+ * @link http://redis.io/commands/sscan
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetRank extends Command
+class SetScan extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZRANK';
-    }
-}
-
-/**
- * @link http://redis.io/commands/zrem
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ZSetRemove extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'ZREM';
+        return 'SSCAN';
     }
 
     /**
@@ -1519,7 +972,37 @@ class ZSetRemove extends Command
      */
     protected function filterArguments(array $arguments)
     {
-        return self::normalizeVariadic($arguments);
+        if (count($arguments) === 3 && is_array($arguments[2])) {
+            $options = $this->prepareOptions(array_pop($arguments));
+            $arguments = array_merge($arguments, $options);
+        }
+
+        return $arguments;
+    }
+
+    /**
+     * Returns a list of options and modifiers compatible with Redis.
+     *
+     * @param array $options List of options.
+     *
+     * @return array
+     */
+    protected function prepareOptions($options)
+    {
+        $options = array_change_key_case($options, CASE_UPPER);
+        $normalized = array();
+
+        if (!empty($options['MATCH'])) {
+            $normalized[] = 'MATCH';
+            $normalized[] = $options['MATCH'];
+        }
+
+        if (!empty($options['COUNT'])) {
+            $normalized[] = 'COUNT';
+            $normalized[] = $options['COUNT'];
+        }
+
+        return $normalized;
     }
 }
 
@@ -1539,119 +1022,167 @@ class ZSetRemoveRangeByLex extends Command
 }
 
 /**
- * @link http://redis.io/commands/echo
+ * @link http://redis.io/commands/bitop
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ConnectionEcho extends Command
+class StringBitOp extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ECHO';
-    }
-}
-
-/**
- * @link http://redis.io/commands/zrangebylex
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ZSetRangeByLex extends ZSetRange
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'ZRANGEBYLEX';
+        return 'BITOP';
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function prepareOptions($options)
+    protected function filterArguments(array $arguments)
     {
-        $opts = array_change_key_case($options, CASE_UPPER);
-        $finalizedOpts = array();
-
-        if (isset($opts['LIMIT']) && is_array($opts['LIMIT'])) {
-            $limit = array_change_key_case($opts['LIMIT'], CASE_UPPER);
-
-            $finalizedOpts[] = 'LIMIT';
-            $finalizedOpts[] = isset($limit['OFFSET']) ? $limit['OFFSET'] : $limit[0];
-            $finalizedOpts[] = isset($limit['COUNT']) ? $limit['COUNT'] : $limit[1];
+        if (count($arguments) === 3 && is_array($arguments[2])) {
+            list($operation, $destination, ) = $arguments;
+            $arguments = $arguments[2];
+            array_unshift($arguments, $operation, $destination);
         }
 
-        return $finalizedOpts;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function withScores()
-    {
-        return false;
+        return $arguments;
     }
 }
 
 /**
- * @link http://redis.io/commands/zlexcount
+ * @link http://redis.io/commands/bitcount
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetLexCount extends Command
+class StringBitCount extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZLEXCOUNT';
+        return 'BITCOUNT';
     }
 }
 
 /**
- * @link http://redis.io/commands/ping
+ * @link http://redis.io/commands/append
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ConnectionPing extends Command
+class StringAppend extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'PING';
+        return 'APPEND';
     }
 }
 
 /**
- * @link http://redis.io/commands/zremrangebyrank
+ * @link http://redis.io/commands/sunion
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetRemoveRangeByRank extends Command
+class SetUnion extends SetIntersection
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZREMRANGEBYRANK';
+        return 'SUNION';
     }
 }
 
 /**
- * @link http://redis.io/commands/zremrangebyscore
+ * @link http://redis.io/commands/sunionstore
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetRemoveRangeByScore extends Command
+class SetUnionStore extends SetIntersectionStore
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZREMRANGEBYSCORE';
+        return 'SUNIONSTORE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/srem
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class SetRemove extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SREM';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/zrevrange
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ZSetReverseRange extends ZSetRange
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'ZREVRANGE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/slowlog
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerSlowlog extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SLOWLOG';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        if (is_array($data)) {
+            $log = array();
+
+            foreach ($data as $index => $entry) {
+                $log[$index] = array(
+                    'id' => $entry[0],
+                    'timestamp' => $entry[1],
+                    'duration' => $entry[2],
+                    'command' => $entry[3],
+                );
+            }
+
+            return $log;
+        }
+
+        return $data;
     }
 }
 
@@ -1671,17 +1202,112 @@ class ZSetScore extends Command
 }
 
 /**
- * @link http://redis.io/commands/auth
+ * @link http://redis.io/commands/slaveof
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ConnectionAuth extends Command
+class ServerSlaveOf extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'AUTH';
+        return 'SLAVEOF';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        if (count($arguments) === 0 || $arguments[0] === 'NO ONE') {
+            return array('NO', 'ONE');
+        }
+
+        return $arguments;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/shutdown
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerShutdown extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SHUTDOWN';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/script
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerScript extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SCRIPT';
+    }
+}
+
+/**
+ * @link http://redis.io/topics/sentinel
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerSentinel extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SENTINEL';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        switch (strtolower($this->getArgument(0))) {
+            case 'masters':
+            case 'slaves':
+                return self::processMastersOrSlaves($data);
+
+            default:
+                return $data;
+        }
+    }
+
+    /**
+     * Returns a processed response to SENTINEL MASTERS or SENTINEL SLAVES.
+     *
+     * @param array $servers List of Redis servers.
+     *
+     * @return array
+     */
+    protected static function processMastersOrSlaves(array $servers)
+    {
+        foreach ($servers as $idx => $node) {
+            $processed = array();
+            $count = count($node);
+
+            for ($i = 0; $i < $count; $i++) {
+                $processed[$node[$i]] = $node[++$i];
+            }
+
+            $servers[$idx] = $processed;
+        }
+
+        return $servers;
     }
 }
 
@@ -1773,17 +1399,17 @@ class ZSetReverseRank extends Command
 }
 
 /**
- * @link http://redis.io/commands/zrevrange
+ * @link http://redis.io/commands/sdiffstore
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetReverseRange extends ZSetRange
+class SetDifferenceStore extends SetIntersectionStore
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZREVRANGE';
+        return 'SDIFFSTORE';
     }
 }
 
@@ -1803,62 +1429,100 @@ class ZSetReverseRangeByScore extends ZSetRangeByScore
 }
 
 /**
- * @link http://redis.io/commands/zinterstore
+ * @link http://redis.io/commands/sdiff
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetIntersectionStore extends ZSetUnionStore
+class SetDifference extends SetIntersection
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZINTERSTORE';
+        return 'SDIFF';
     }
 }
 
 /**
- * @link http://redis.io/commands/zincrby
+ * @link http://redis.io/commands/scard
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ZSetIncrementBy extends Command
+class SetCardinality extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'ZINCRBY';
+        return 'SCARD';
     }
 }
 
 /**
- * @link http://redis.io/commands/setrange
+ * @link http://redis.io/commands/time
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSetRange extends Command
+class ServerTime extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SETRANGE';
+        return 'TIME';
     }
 }
 
 /**
- * @link http://redis.io/commands/strlen
+ * @link http://redis.io/commands/sadd
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringStrlen extends Command
+class SetAdd extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'STRLEN';
+        return 'SADD';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/bitpos
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringBitPos extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'BITPOS';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/decrby
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringDecrementBy extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'DECRBY';
     }
 }
 
@@ -1878,25 +1542,62 @@ class StringSubstr extends Command
 }
 
 /**
- * @link http://redis.io/commands/setnx
+ * @link http://redis.io/commands/zlexcount
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class StringSetPreserve extends Command
+class ZSetLexCount extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SETNX';
+        return 'ZLEXCOUNT';
     }
+}
 
+/**
+ * @link http://redis.io/commands/zinterstore
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ZSetIntersectionStore extends ZSetUnionStore
+{
     /**
      * {@inheritdoc}
      */
-    public function parseResponse($data)
+    public function getId()
     {
-        return (bool) $data;
+        return 'ZINTERSTORE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/strlen
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringStrlen extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'STRLEN';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/setrange
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringSetRange extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SETRANGE';
     }
 }
 
@@ -1924,32 +1625,25 @@ class StringSetMultiplePreserve extends StringSetMultiple
 }
 
 /**
- * @link http://redis.io/commands/select
+ * @link http://redis.io/commands/setnx
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ConnectionSelect extends Command
+class StringSetPreserve extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SELECT';
+        return 'SETNX';
     }
-}
 
-/**
- * @link http://redis.io/commands/quit
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ConnectionQuit extends Command
-{
     /**
      * {@inheritdoc}
      */
-    public function getId()
+    public function parseResponse($data)
     {
-        return 'QUIT';
+        return (bool) $data;
     }
 }
 
@@ -2105,32 +1799,368 @@ class TransactionUnwatch extends Command
 }
 
 /**
- * @link http://redis.io/commands/shutdown
+ * @link http://redis.io/commands/zrangebylex
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ServerShutdown extends Command
+class ZSetRangeByLex extends ZSetRange
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SHUTDOWN';
+        return 'ZRANGEBYLEX';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function prepareOptions($options)
+    {
+        $opts = array_change_key_case($options, CASE_UPPER);
+        $finalizedOpts = array();
+
+        if (isset($opts['LIMIT']) && is_array($opts['LIMIT'])) {
+            $limit = array_change_key_case($opts['LIMIT'], CASE_UPPER);
+
+            $finalizedOpts[] = 'LIMIT';
+            $finalizedOpts[] = isset($limit['OFFSET']) ? $limit['OFFSET'] : $limit[0];
+            $finalizedOpts[] = isset($limit['COUNT']) ? $limit['COUNT'] : $limit[1];
+        }
+
+        return $finalizedOpts;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function withScores()
+    {
+        return false;
     }
 }
 
 /**
- * @link http://redis.io/topics/sentinel
+ * @link http://redis.io/commands/zrank
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ServerSentinel extends Command
+class ZSetRank extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'SENTINEL';
+        return 'ZRANK';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/mget
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringGetMultiple extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'MGET';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeArguments($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/getrange
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringGetRange extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'GETRANGE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/zrem
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ZSetRemove extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'ZREM';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/getbit
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringGetBit extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'GETBIT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/zincrby
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ZSetIncrementBy extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'ZINCRBY';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/get
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringGet extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'GET';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/getset
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringGetSet extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'GETSET';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/incr
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringIncrement extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'INCR';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/set
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringSet extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SET';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/setbit
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringSetBit extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SETBIT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/psetex
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringPreciseSetExpire extends StringSetExpire
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PSETEX';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/incrbyfloat
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringIncrementByFloat extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'INCRBYFLOAT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/incrby
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringIncrementBy extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'INCRBY';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/save
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerSave extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SAVE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/decr
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class StringDecrement extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'DECR';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/flushall
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerFlushAll extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'FLUSHALL';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/del
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyDelete extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'DEL';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeArguments($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/dump
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyDump extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'DUMP';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/exists
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyExists extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'EXISTS';
     }
 
     /**
@@ -2138,82 +2168,504 @@ class ServerSentinel extends Command
      */
     public function parseResponse($data)
     {
-        switch (strtolower($this->getArgument(0))) {
-            case 'masters':
-            case 'slaves':
-                return self::processMastersOrSlaves($data);
+        return (bool) $data;
+    }
+}
 
-            default:
-                return $data;
-        }
+/**
+ * @link http://redis.io/commands/pfmerge
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HyperLogLogMerge extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PFMERGE';
     }
 
     /**
-     * Returns a processed response to SENTINEL MASTERS or SENTINEL SLAVES.
-     *
-     * @param array $servers List of Redis servers.
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    protected static function processMastersOrSlaves(array $servers)
+    protected function filterArguments(array $arguments)
     {
-        foreach ($servers as $idx => $node) {
-            $processed = array();
-            $count = count($node);
+        return self::normalizeArguments($arguments);
+    }
+}
 
-            for ($i = 0; $i < $count; $i++) {
-                $processed[$node[$i]] = $node[++$i];
+/**
+ * @link http://redis.io/commands/pfcount
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HyperLogLogCount extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PFCOUNT';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeArguments($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hvals
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashValues extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HVALS';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/pfadd
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HyperLogLogAdd extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PFADD';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/keys
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyKeys extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'KEYS';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/move
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyMove extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'MOVE';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/randomkey
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyRandom extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RANDOMKEY';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return $data !== '' ? $data : null;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/renamenx
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyRenamePreserve extends KeyRename
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RENAMENX';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/restore
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyRestore extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RESTORE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/pttl
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyPreciseTimeToLive extends KeyTimeToLive
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PTTL';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/pexpireat
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyPreciseExpireAt extends KeyExpireAt
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PEXPIREAT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/persist
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyPersist extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PERSIST';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/pexpire
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyPreciseExpire extends KeyExpire
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PEXPIRE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hsetnx
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashSetPreserve extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HSETNX';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hmset
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashSetMultiple extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HMSET';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        if (count($arguments) === 2 && is_array($arguments[1])) {
+            $flattenedKVs = array($arguments[0]);
+            $args = $arguments[1];
+
+            foreach ($args as $k => $v) {
+                $flattenedKVs[] = $k;
+                $flattenedKVs[] = $v;
             }
 
-            $servers[$idx] = $processed;
+            return $flattenedKVs;
         }
 
-        return $servers;
+        return $arguments;
     }
 }
 
 /**
- * @link http://redis.io/commands/type
+ * @link http://redis.io/commands/select
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class KeyType extends Command
+class ConnectionSelect extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'TYPE';
+        return 'SELECT';
     }
 }
 
 /**
- * @link http://redis.io/commands/lindex
+ * @link http://redis.io/commands/hdel
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ListIndex extends Command
+class HashDelete extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'LINDEX';
+        return 'HDEL';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
     }
 }
 
 /**
- * @link http://redis.io/commands/linsert
+ * @link http://redis.io/commands/hexists
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class ListInsert extends Command
+class HashExists extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'LINSERT';
+        return 'HEXISTS';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/quit
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ConnectionQuit extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'QUIT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/ping
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ConnectionPing extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PING';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/auth
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ConnectionAuth extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'AUTH';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/echo
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ConnectionEcho extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'ECHO';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hget
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashGet extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HGET';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hgetall
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashGetAll extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HGETALL';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        $result = array();
+
+        for ($i = 0; $i < count($data); $i++) {
+            $result[$data[$i]] = $data[++$i];
+        }
+
+        return $result;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hlen
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashLength extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HLEN';
     }
 }
 
@@ -2290,6 +2742,150 @@ class HashScan extends Command
 }
 
 /**
+ * @link http://redis.io/commands/hset
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashSet extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HSET';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return (bool) $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hkeys
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashKeys extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HKEYS';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hincrbyfloat
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashIncrementByFloat extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HINCRBYFLOAT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hmget
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashGetMultiple extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HMGET';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        return self::normalizeVariadic($arguments);
+    }
+}
+
+/**
+ * @link http://redis.io/commands/hincrby
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class HashIncrementBy extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'HINCRBY';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/scan
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyScan extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'SCAN';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function filterArguments(array $arguments)
+    {
+        if (count($arguments) === 2 && is_array($arguments[1])) {
+            $options = $this->prepareOptions(array_pop($arguments));
+            $arguments = array_merge($arguments, $options);
+        }
+
+        return $arguments;
+    }
+
+    /**
+     * Returns a list of options and modifiers compatible with Redis.
+     *
+     * @param array $options List of options.
+     *
+     * @return array
+     */
+    protected function prepareOptions($options)
+    {
+        $options = array_change_key_case($options, CASE_UPPER);
+        $normalized = array();
+
+        if (!empty($options['MATCH'])) {
+            $normalized[] = 'MATCH';
+            $normalized[] = $options['MATCH'];
+        }
+
+        if (!empty($options['COUNT'])) {
+            $normalized[] = 'COUNT';
+            $normalized[] = $options['COUNT'];
+        }
+
+        return $normalized;
+    }
+}
+
+/**
  * @link http://redis.io/commands/sort
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
@@ -2361,1131 +2957,6 @@ class KeySort extends Command
 }
 
 /**
- * @link http://redis.io/commands/restore
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyRestore extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RESTORE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/scan
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyScan extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SCAN';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        if (count($arguments) === 2 && is_array($arguments[1])) {
-            $options = $this->prepareOptions(array_pop($arguments));
-            $arguments = array_merge($arguments, $options);
-        }
-
-        return $arguments;
-    }
-
-    /**
-     * Returns a list of options and modifiers compatible with Redis.
-     *
-     * @param array $options List of options.
-     *
-     * @return array
-     */
-    protected function prepareOptions($options)
-    {
-        $options = array_change_key_case($options, CASE_UPPER);
-        $normalized = array();
-
-        if (!empty($options['MATCH'])) {
-            $normalized[] = 'MATCH';
-            $normalized[] = $options['MATCH'];
-        }
-
-        if (!empty($options['COUNT'])) {
-            $normalized[] = 'COUNT';
-            $normalized[] = $options['COUNT'];
-        }
-
-        return $normalized;
-    }
-}
-
-/**
- * @link http://redis.io/commands/llen
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListLength extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LLEN';
-    }
-}
-
-/**
- * @link http://redis.io/commands/lpop
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPopFirst extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LPOP';
-    }
-}
-
-/**
- * @link http://redis.io/commands/brpoplpush
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPopLastPushHeadBlocking extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'BRPOPLPUSH';
-    }
-}
-
-/**
- * @link http://redis.io/commands/lpush
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPushHead extends ListPushTail
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LPUSH';
-    }
-}
-
-/**
- * @link http://redis.io/commands/rpoplpush
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPopLastPushHead extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RPOPLPUSH';
-    }
-}
-
-/**
- * @link http://redis.io/commands/brpop
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPopLastBlocking extends ListPopFirstBlocking
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'BRPOP';
-    }
-}
-
-/**
- * @link http://redis.io/commands/hlen
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashLength extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HLEN';
-    }
-}
-
-/**
- * @link http://redis.io/commands/rpop
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPopLast extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RPOP';
-    }
-}
-
-/**
- * @link http://redis.io/commands/renamenx
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyRenamePreserve extends KeyRename
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RENAMENX';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/hset
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashSet extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HSET';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/dump
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyDump extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'DUMP';
-    }
-}
-
-/**
- * @link http://redis.io/commands/exists
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyExists extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'EXISTS';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/hsetnx
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashSetPreserve extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HSETNX';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/del
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyDelete extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'DEL';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeArguments($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/pfmerge
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HyperLogLogMerge extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PFMERGE';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeArguments($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/pfadd
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HyperLogLogAdd extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PFADD';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeVariadic($arguments);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/pfcount
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HyperLogLogCount extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PFCOUNT';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeArguments($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/hmset
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashSetMultiple extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HMSET';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        if (count($arguments) === 2 && is_array($arguments[1])) {
-            $flattenedKVs = array($arguments[0]);
-            $args = $arguments[1];
-
-            foreach ($args as $k => $v) {
-                $flattenedKVs[] = $k;
-                $flattenedKVs[] = $v;
-            }
-
-            return $flattenedKVs;
-        }
-
-        return $arguments;
-    }
-}
-
-/**
- * @link http://redis.io/commands/keys
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyKeys extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'KEYS';
-    }
-}
-
-/**
- * @link http://redis.io/commands/pttl
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyPreciseTimeToLive extends KeyTimeToLive
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PTTL';
-    }
-}
-
-/**
- * @link http://redis.io/commands/randomkey
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyRandom extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RANDOMKEY';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return $data !== '' ? $data : null;
-    }
-}
-
-/**
- * @link http://redis.io/commands/pexpireat
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyPreciseExpireAt extends KeyExpireAt
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PEXPIREAT';
-    }
-}
-
-/**
- * @link http://redis.io/commands/pexpire
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyPreciseExpire extends KeyExpire
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PEXPIRE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/move
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyMove extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'MOVE';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/persist
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class KeyPersist extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PERSIST';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return (bool) $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/lpushx
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPushHeadX extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LPUSHX';
-    }
-}
-
-/**
- * @link http://redis.io/commands/hkeys
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashKeys extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HKEYS';
-    }
-}
-
-/**
- * @link http://redis.io/commands/hmget
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashGetMultiple extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HMGET';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function filterArguments(array $arguments)
-    {
-        return self::normalizeVariadic($arguments);
-    }
-}
-
-/**
- * @link http://redis.io/commands/hgetall
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashGetAll extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HGETALL';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        $result = array();
-
-        for ($i = 0; $i < count($data); $i++) {
-            $result[$data[$i]] = $data[++$i];
-        }
-
-        return $result;
-    }
-}
-
-/**
- * @link http://redis.io/commands/flushall
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerFlushAll extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'FLUSHALL';
-    }
-}
-
-/**
- * @link http://redis.io/commands/dbsize
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerDatabaseSize extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'DBSIZE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/config-set
- * @link http://redis.io/commands/config-get
- * @link http://redis.io/commands/config-resetstat
- * @link http://redis.io/commands/config-rewrite
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerConfig extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'CONFIG';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        if (is_array($data)) {
-            $result = array();
-
-            for ($i = 0; $i < count($data); $i++) {
-                $result[$data[$i]] = $data[++$i];
-            }
-
-            return $result;
-        }
-
-        return $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/client-list
- * @link http://redis.io/commands/client-kill
- * @link http://redis.io/commands/client-getname
- * @link http://redis.io/commands/client-setname
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerClient extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'CLIENT';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        $args = array_change_key_case($this->getArguments(), CASE_UPPER);
-
-        switch (strtoupper($args[0])) {
-            case 'LIST':
-                return $this->parseClientList($data);
-            case 'KILL':
-            case 'GETNAME':
-            case 'SETNAME':
-            default:
-                return $data;
-        }
-    }
-
-    /**
-     * Parses the response to CLIENT LIST and returns a structured list.
-     *
-     * @param string $data Response buffer.
-     *
-     * @return array
-     */
-    protected function parseClientList($data)
-    {
-        $clients = array();
-
-        foreach (explode("\n", $data, -1) as $clientData) {
-            $client = array();
-
-            foreach (explode(' ', $clientData) as $kv) {
-                @list($k, $v) = explode('=', $kv);
-                $client[$k] = $v;
-            }
-
-            $clients[] = $client;
-        }
-
-        return $clients;
-    }
-}
-
-/**
- * @link http://redis.io/commands/command
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerCommand extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'COMMAND';
-    }
-}
-
-/**
- * @link http://redis.io/commands/flushdb
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerFlushDatabase extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'FLUSHDB';
-    }
-}
-
-/**
- * @link http://redis.io/commands/hget
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashGet extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HGET';
-    }
-}
-
-/**
- * @link http://redis.io/commands/save
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerSave extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SAVE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/script
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerScript extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'SCRIPT';
-    }
-}
-
-/**
- * @link http://redis.io/commands/object
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerObject extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'OBJECT';
-    }
-}
-
-/**
- * @link http://redis.io/commands/monitor
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerMonitor extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'MONITOR';
-    }
-}
-
-/**
- * @link http://redis.io/commands/info
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerInfoV26x extends ServerInfo
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        $info = array();
-        $current = null;
-        $infoLines = preg_split('/\r?\n/', $data);
-
-        if (isset($infoLines[0]) && $infoLines[0][0] !== '#') {
-            return parent::parseResponse($data);
-        }
-
-        foreach ($infoLines as $row) {
-            if ($row === '') {
-                continue;
-            }
-
-            if (preg_match('/^# (\w+)$/', $row, $matches)) {
-                $info[$matches[1]] = array();
-                $current = &$info[$matches[1]];
-                continue;
-            }
-
-            list($k, $v) = $this->parseRow($row);
-            $current[$k] = $v;
-        }
-
-        return $info;
-    }
-}
-
-/**
- * @link http://redis.io/commands/lastsave
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerLastSave extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LASTSAVE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/bgsave
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerBackgroundSave extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'BGSAVE';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return $data === 'Background saving started' ? true : $data;
-    }
-}
-
-/**
- * @link http://redis.io/commands/bgrewriteaof
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ServerBackgroundRewriteAOF extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'BGREWRITEAOF';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        return $data == 'Background append only file rewriting started';
-    }
-}
-
-/**
- * @link http://redis.io/commands/ltrim
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListTrim extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LTRIM';
-    }
-}
-
-/**
- * Defines a command whose keys can be prefixed.
- *
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-interface PrefixableCommandInterface extends CommandInterface
-{
-    /**
-     * Prefixes all the keys found in the arguments of the command.
-     *
-     * @param string $prefix String used to prefix the keys.
-     */
-    public function prefixKeys($prefix);
-}
-
-/**
- * @link http://redis.io/commands/lset
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListSet extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LSET';
-    }
-}
-
-/**
- * @link http://redis.io/commands/lrem
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListRemove extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LREM';
-    }
-}
-
-/**
- * @link http://redis.io/commands/rpushx
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListPushTailX extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'RPUSHX';
-    }
-}
-
-/**
- * @link http://redis.io/commands/lrange
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class ListRange extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'LRANGE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/publish
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class PubSubPublish extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PUBLISH';
-    }
-}
-
-/**
- * @link http://redis.io/commands/pubsub
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class PubSubPubsub extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'PUBSUB';
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function parseResponse($data)
-    {
-        switch (strtolower($this->getArgument(0))) {
-            case 'numsub':
-                return self::processNumsub($data);
-
-            default:
-                return $data;
-        }
-    }
-
-    /**
-     * Returns the processed response to PUBSUB NUMSUB.
-     *
-     * @param array $channels List of channels
-     *
-     * @return array
-     */
-    protected static function processNumsub(array $channels)
-    {
-        $processed = array();
-        $count = count($channels);
-
-        for ($i = 0; $i < $count; $i++) {
-            $processed[$channels[$i]] = $channels[++$i];
-        }
-
-        return $processed;
-    }
-}
-
-/**
  * Class for generic "anonymous" Redis commands.
  *
  * This command class does not filter input arguments or parse responses, but
@@ -3503,6 +2974,8 @@ class RawCommand implements CommandInterface
 
     /**
      * @param array $arguments Command ID and its arguments.
+     *
+     * @throws \InvalidArgumentException
      */
     public function __construct(array $arguments)
     {
@@ -3667,6 +3140,29 @@ abstract class ScriptCommand extends ServerEvalSHA
 }
 
 /**
+ * @link http://redis.io/commands/bgrewriteaof
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerBackgroundRewriteAOF extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'BGREWRITEAOF';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return $data == 'Background append only file rewriting started';
+    }
+}
+
+/**
  * @link http://redis.io/commands/punsubscribe
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
@@ -3678,36 +3174,6 @@ class PubSubUnsubscribeByPattern extends PubSubUnsubscribe
     public function getId()
     {
         return 'PUNSUBSCRIBE';
-    }
-}
-
-/**
- * @link http://redis.io/commands/hincrby
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashIncrementBy extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HINCRBY';
-    }
-}
-
-/**
- * @link http://redis.io/commands/hincrbyfloat
- * @author Daniele Alessandri <suppakilla@gmail.com>
- */
-class HashIncrementByFloat extends Command
-{
-    /**
-     * {@inheritdoc}
-     */
-    public function getId()
-    {
-        return 'HINCRBYFLOAT';
     }
 }
 
@@ -3727,17 +3193,573 @@ class PubSubSubscribeByPattern extends PubSubSubscribe
 }
 
 /**
- * @link http://redis.io/commands/hvals
+ * @link http://redis.io/commands/publish
  * @author Daniele Alessandri <suppakilla@gmail.com>
  */
-class HashValues extends Command
+class PubSubPublish extends Command
 {
     /**
      * {@inheritdoc}
      */
     public function getId()
     {
-        return 'HVALS';
+        return 'PUBLISH';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/pubsub
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class PubSubPubsub extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'PUBSUB';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        switch (strtolower($this->getArgument(0))) {
+            case 'numsub':
+                return self::processNumsub($data);
+
+            default:
+                return $data;
+        }
+    }
+
+    /**
+     * Returns the processed response to PUBSUB NUMSUB.
+     *
+     * @param array $channels List of channels
+     *
+     * @return array
+     */
+    protected static function processNumsub(array $channels)
+    {
+        $processed = array();
+        $count = count($channels);
+
+        for ($i = 0; $i < $count; $i++) {
+            $processed[$channels[$i]] = $channels[++$i];
+        }
+
+        return $processed;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/bgsave
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerBackgroundSave extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'BGSAVE';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        return $data === 'Background saving started' ? true : $data;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/client-list
+ * @link http://redis.io/commands/client-kill
+ * @link http://redis.io/commands/client-getname
+ * @link http://redis.io/commands/client-setname
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerClient extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'CLIENT';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        $args = array_change_key_case($this->getArguments(), CASE_UPPER);
+
+        switch (strtoupper($args[0])) {
+            case 'LIST':
+                return $this->parseClientList($data);
+            case 'KILL':
+            case 'GETNAME':
+            case 'SETNAME':
+            default:
+                return $data;
+        }
+    }
+
+    /**
+     * Parses the response to CLIENT LIST and returns a structured list.
+     *
+     * @param string $data Response buffer.
+     *
+     * @return array
+     */
+    protected function parseClientList($data)
+    {
+        $clients = array();
+
+        foreach (explode("\n", $data, -1) as $clientData) {
+            $client = array();
+
+            foreach (explode(' ', $clientData) as $kv) {
+                @list($k, $v) = explode('=', $kv);
+                $client[$k] = $v;
+            }
+
+            $clients[] = $client;
+        }
+
+        return $clients;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/info
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerInfoV26x extends ServerInfo
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        if ($data === '') {
+            return array();
+        }
+
+        $info = array();
+
+        $current = null;
+        $infoLines = preg_split('/\r?\n/', $data);
+
+        if (isset($infoLines[0]) && $infoLines[0][0] !== '#') {
+            return parent::parseResponse($data);
+        }
+
+        foreach ($infoLines as $row) {
+            if ($row === '') {
+                continue;
+            }
+
+            if (preg_match('/^# (\w+)$/', $row, $matches)) {
+                $info[$matches[1]] = array();
+                $current = &$info[$matches[1]];
+                continue;
+            }
+
+            list($k, $v) = $this->parseRow($row);
+            $current[$k] = $v;
+        }
+
+        return $info;
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lastsave
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerLastSave extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LASTSAVE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/monitor
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerMonitor extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'MONITOR';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/flushdb
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerFlushDatabase extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'FLUSHDB';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/dbsize
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerDatabaseSize extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'DBSIZE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/command
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerCommand extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'COMMAND';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/config-set
+ * @link http://redis.io/commands/config-get
+ * @link http://redis.io/commands/config-resetstat
+ * @link http://redis.io/commands/config-rewrite
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerConfig extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'CONFIG';
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function parseResponse($data)
+    {
+        if (is_array($data)) {
+            $result = array();
+
+            for ($i = 0; $i < count($data); $i++) {
+                $result[$data[$i]] = $data[++$i];
+            }
+
+            return $result;
+        }
+
+        return $data;
+    }
+}
+
+/**
+ * Defines a command whose keys can be prefixed.
+ *
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+interface PrefixableCommandInterface extends CommandInterface
+{
+    /**
+     * Prefixes all the keys found in the arguments of the command.
+     *
+     * @param string $prefix String used to prefix the keys.
+     */
+    public function prefixKeys($prefix);
+}
+
+/**
+ * @link http://redis.io/commands/ltrim
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListTrim extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LTRIM';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lpop
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPopFirst extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LPOP';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/rpop
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPopLast extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RPOP';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/brpop
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPopLastBlocking extends ListPopFirstBlocking
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'BRPOP';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/llen
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListLength extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LLEN';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/linsert
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListInsert extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LINSERT';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/type
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class KeyType extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'TYPE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lindex
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListIndex extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LINDEX';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/rpoplpush
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPopLastPushHead extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RPOPLPUSH';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/brpoplpush
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPopLastPushHeadBlocking extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'BRPOPLPUSH';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lrem
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListRemove extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LREM';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lset
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListSet extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LSET';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lrange
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListRange extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LRANGE';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/rpushx
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPushTailX extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'RPUSHX';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lpush
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPushHead extends ListPushTail
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LPUSH';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/lpushx
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ListPushHeadX extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'LPUSHX';
+    }
+}
+
+/**
+ * @link http://redis.io/commands/object
+ * @author Daniele Alessandri <suppakilla@gmail.com>
+ */
+class ServerObject extends Command
+{
+    /**
+     * {@inheritdoc}
+     */
+    public function getId()
+    {
+        return 'OBJECT';
     }
 }
 
@@ -3934,6 +3956,8 @@ abstract class AbstractConnection implements NodeConnectionInterface
      * @param ParametersInterface $parameters Initialization parameters for the connection.
      *
      * @return ParametersInterface
+     *
+     * @throws \InvalidArgumentException
      */
     protected function assertParameters(ParametersInterface $parameters)
     {
@@ -4205,6 +4229,14 @@ class StreamConnection extends AbstractConnection
 
         if (!$resource) {
             $this->onConnectionError(trim($errstr), $errno);
+        }
+
+        if (isset($parameters->read_write_timeout)) {
+            $rwtimeout = (float) $parameters->read_write_timeout;
+            $rwtimeout = $rwtimeout > 0 ? $rwtimeout : -1;
+            $timeoutSeconds  = floor($rwtimeout);
+            $timeoutUSeconds = ($rwtimeout - $timeoutSeconds) * 1000000;
+            stream_set_timeout($resource, $timeoutSeconds, $timeoutUSeconds);
         }
 
         return $resource;
@@ -4721,6 +4753,8 @@ class WebdisConnection implements NodeConnectionInterface
 
     /**
      * @param ParametersInterface $parameters Initialization parameters for the connection.
+     *
+     * @throws \InvalidArgumentException
      */
     public function __construct(ParametersInterface $parameters)
     {
@@ -5568,6 +5602,8 @@ class Parameters implements ParametersInterface
      * @param string $uri URI string.
      *
      * @return array
+     *
+     * @throws \InvalidArgumentException
      */
     public static function parse($uri)
     {
@@ -5658,6 +5694,8 @@ class Factory implements FactoryInterface
      * @param mixed $initializer FQN of a connection class or a callable for lazy initialization.
      *
      * @return mixed
+     *
+     * @throws \InvalidArgumentException
      */
     protected function checkInitializer($initializer)
     {
@@ -5916,6 +5954,8 @@ abstract class RedisProfile implements ProfileInterface
      *
      * @param string $commandID Command ID.
      * @param string $class     Fully-qualified name of a Predis\Command\CommandInterface.
+     *
+     * @throws \InvalidArgumentException
      */
     public function defineCommand($commandID, $class)
     {
@@ -6178,6 +6218,9 @@ class RedisVersion300 extends RedisProfile
 
             /* commands operating on the key space */
             'SCAN'                      => 'Predis\Command\KeyScan',
+
+            /* commands operating on string values */
+            'BITPOS'                    => 'Predis\Command\StringBitPos',
 
             /* commands operating on sets */
             'SSCAN'                     => 'Predis\Command\SetScan',
@@ -6654,6 +6697,9 @@ class RedisVersion280 extends RedisProfile
             /* commands operating on the key space */
             'SCAN'                      => 'Predis\Command\KeyScan',
 
+            /* commands operating on string values */
+            'BITPOS'                    => 'Predis\Command\StringBitPos',
+
             /* commands operating on sets */
             'SSCAN'                     => 'Predis\Command\SetScan',
 
@@ -7111,6 +7157,8 @@ final class Factory
      *
      * @param string $alias Profile version or alias.
      * @param string $class FQN of a class implementing Predis\Profile\ProfileInterface.
+     *
+     * @throws \InvalidArgumentException
      */
     public static function define($alias, $class)
     {
@@ -7461,6 +7509,7 @@ abstract class PredisException extends Exception
  * @method $this zadd($key, array $membersAndScoresDictionary)
  * @method $this zcard($key)
  * @method $this zcount($key, $min, $max)
+ * @method $this zincrby($key, $increment, $member)
  * @method $this zinterstore($destination, array $keys, array $options = null)
  * @method $this zrange($key, $start, $stop, array $options = null)
  * @method $this zrangebyscore($key, $min, $max, array $options = null)
@@ -7707,6 +7756,7 @@ abstract class CommunicationException extends PredisException
  * @method int    zadd($key, array $membersAndScoresDictionary)
  * @method int    zcard($key)
  * @method string zcount($key, $min, $max)
+ * @method string zincrby($key, $increment, $member)
  * @method int    zinterstore($destination, array $keys, array $options = null)
  * @method array  zrange($key, $start, $stop, array $options = null)
  * @method array  zrangebyscore($key, $min, $max, array $options = null)
@@ -7853,7 +7903,7 @@ class ClientException extends PredisException
  */
 class Client implements ClientInterface
 {
-    const VERSION = '1.0.0';
+    const VERSION = '1.0.1';
 
     protected $connection;
     protected $options;
@@ -7878,6 +7928,8 @@ class Client implements ClientInterface
      * @param mixed $options Client options.
      *
      * @return OptionsInterface
+     *
+     * @throws \InvalidArgumentException
      */
     protected function createOptions($options)
     {
@@ -7908,6 +7960,8 @@ class Client implements ClientInterface
      * @param mixed $parameters Connection parameters or connection instance.
      *
      * @return ConnectionInterface
+     *
+     * @throws \InvalidArgumentException
      */
     protected function createConnection($parameters)
     {
@@ -7999,6 +8053,8 @@ class Client implements ClientInterface
      * @param string $connectionID Identifier of a connection.
      *
      * @return Client
+     *
+     * @throws \InvalidArgumentException
      */
     public function getClientFor($connectionID)
     {
@@ -9455,8 +9511,12 @@ class SortedSetKey extends CursorBasedIterator
      */
     protected function extractNext()
     {
-        $this->position = key($this->elements);
-        $this->current = array_shift($this->elements);
+        if ($kv = each($this->elements)) {
+            $this->position = $kv[0];
+            $this->current = $kv[1];
+
+            unset($this->elements[$this->position]);
+        }
     }
 }
 
@@ -9590,6 +9650,8 @@ class ListKey implements Iterator
      * @param ClientInterface $client Client connected to Redis.
      * @param string          $key    Redis list key.
      * @param int             $count  Number of items retrieved on each fetch operation.
+     *
+     * @throws \InvalidArgumentException
      */
     public function __construct(ClientInterface $client, $key, $count = 10)
     {
@@ -9942,6 +10004,8 @@ abstract class ClusterStrategy implements StrategyInterface
      *
      * @param string $commandID Command ID.
      * @param mixed  $callback  A valid callable object, or NULL to unset the handler.
+     *
+     * @throws \InvalidArgumentException
      */
     public function setCommandHandler($commandID, $callback = null)
     {
@@ -10102,11 +10166,6 @@ abstract class ClusterStrategy implements StrategyInterface
     }
 
     /**
-     * {@inheritdoc}
-     */
-    abstract public function getSlotByKey($key);
-
-    /**
      * Checks if the specified array of keys will generate the same hash.
      *
      * @param array $keys Array of keys.
@@ -10152,11 +10211,6 @@ abstract class ClusterStrategy implements StrategyInterface
 
         return $key;
     }
-
-    /**
-     * {@inheritdoc}
-     */
-    abstract public function getDistributor();
 }
 
 /**
@@ -10616,6 +10670,8 @@ class RedisCluster implements ClusterInterface, IteratorAggregate, Countable
      * @param int                            $first      Initial slot of the range.
      * @param int                            $last       Last slot of the range.
      * @param NodeConnectionInterface|string $connection ID or connection instance.
+     *
+     * @throws \OutOfBoundsException
      */
     public function setSlots($first, $last, $connection)
     {
@@ -10705,6 +10761,8 @@ class RedisCluster implements ClusterInterface, IteratorAggregate, Countable
      * @param int $slot Slot index.
      *
      * @return NodeConnectionInterface
+     *
+     * @throws \OutOfBoundsException
      */
     public function getConnectionBySlot($slot)
     {
@@ -12476,6 +12534,9 @@ class MultiBulkTuple extends MultiBulk implements OuterIterator
      * Checks for valid preconditions.
      *
      * @param MultiBulk $iterator Inner multibulk response iterator.
+     *
+     * @throws \InvalidArgumentException
+     * @throws \UnexpectedValueException
      */
     protected function checkPreconditions(MultiBulk $iterator)
     {
@@ -12932,6 +12993,8 @@ class KeyPrefixProcessor implements ProcessorInterface
      *
      * @param string $commandID The ID of the command to be handled.
      * @param mixed  $callback  A valid callable object or NULL.
+     *
+     * @throws \InvalidArgumentException
      */
     public function setCommandHandler($commandID, $callback = null)
     {
@@ -13701,6 +13764,8 @@ class DispatcherLoop
      * Checks if the passed argument is a valid callback.
      *
      * @param mixed $callable A callback.
+     *
+     * @throws \InvalidArgumentException
      */
     protected function assertCallback($callable)
     {
