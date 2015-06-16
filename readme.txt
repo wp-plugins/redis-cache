@@ -83,6 +83,12 @@ Users with setups where multiple installs share a common `wp-config.php` or `$ta
 
 == Changelog ==
 
+= 1.2 =
+
+  * Added Multisite support
+  * Moved admin menu under _Settings_ menu
+  * Fixed PHP notice in `get_redis_client_name()`
+
 = 1.1.1 =
 
   * Call `select()` and optionally `auth()` if HHVM extension is used
